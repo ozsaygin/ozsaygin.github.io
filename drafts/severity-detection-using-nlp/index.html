@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"  lang="en-us">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+<title> Automation of bug report classification | ozsaygin.github.io</title>
+
+
+
+<link href="ozsaygin.github.io/index.xml" rel="alternate" type="application/rss+xml" title="ozsaygin.github.io" />
+
+<link rel="stylesheet" href="/ozsaygin.github.io/css/style.css"/><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+<link rel="canonical" href="ozsaygin.github.io/drafts/severity-detection-using-nlp/">
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="theme-color" content="#ffffff">
+</head>
+<body>
+<section class="section">
+  <div class="container">
+    <nav id="nav-main" class="nav">
+      <div id="nav-name" class="nav-left">
+        <a id="nav-anchor" class="nav-item" href="ozsaygin.github.io">
+          <h1 id="nav-heading" class="title is-4">ozsaygin.github.io</h1>
+        </a>
+      </div>
+      <div class="nav-right">
+        <nav id="nav-items" class="nav-item level is-mobile"><a class="level-item" aria-label="github" href='https://github.com/ozsaygin'
+            target='_blank' rel='noopener'>
+            <span class="icon">
+              <i class><svg viewbox='0 0 24 24' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' aria-hidden='true'>
+    
+    <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+    
+  </svg></i>
+            </span>
+          </a></nav>
+      </div>
+    </nav>
+
+    <nav class="nav">
+      
+
+      
+    </nav>
+
+  </div>
+  <script src="/js/navicon-shift.js"></script>
+</section>
+<section class="section">
+  <div class="container">
+    <div class="subtitle tags is-6 is-pulled-right">
+      
+    </div>
+    <h2 class="subtitle is-6">June 30, 2020</h2>
+    <h1 class="title"> Automation of bug report classification</h1>
+    
+    <div class="content">
+      <p>In every large-scale software development company, software defects are tracked with an isssue tracking sofware in the software development life-cycle (such as Bugzilla, Fossil, Github Issue Tracker <em>etc.</em>). Many of those bugs report comes from automated services or tests automation sofwares. The classification of reports by a developer nearly</p>
+<p>In a day, hundreads or thousands of bug reports are delivered to those softwares without any data preprocessing. Therefore, it is the responsibility of a developer to assign a bug report to a developer who related with him. However, in those companies, there are several departments and in each department tens of developers working on a common project. Thus, it is a burden to developers this bug clasificaation and asingment processes because the developer spends considerable amount of time on this job instead of developing new features.</p>
+<p>Since bug reports are confidential information for cooperations, we will use Mozilla&rsquo;s Bugzilla repository to download a bug report dataset. The scope of experiment is h</p>
+<p><a href="https://github.com/ebozkurt93/Bugzilla-Bug-Crawler">https://github.com/ebozkurt93/Bugzilla-Bug-Crawler</a></p>
+<p>A truntucated bug report look below.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-json" data-lang="json">{
+  <span style="color:#f92672">&#34;version&#34;</span>: <span style="color:#e6db74">&#34;Trunk&#34;</span>,
+  <span style="color:#f92672">&#34;classification&#34;</span>: <span style="color:#e6db74">&#34;Components&#34;</span>,
+  <span style="color:#f92672">&#34;creator&#34;</span>: <span style="color:#e6db74">&#34;philringnalda@gmail.com&#34;</span>,
+  <span style="color:#f92672">&#34;cc&#34;</span>: [<span style="color:#e6db74">&#34;gavin.sharp@gmail.com&#34;</span>],
+  <span style="color:#f92672">&#34;creation_time&#34;</span>: <span style="color:#e6db74">&#34;2007-01-01T06:04:50Z&#34;</span>,
+  <span style="color:#f92672">&#34;cc_detail&#34;</span>: [
+    {
+      <span style="color:#f92672">&#34;id&#34;</span>: <span style="color:#ae81ff">103593</span>,
+      <span style="color:#f92672">&#34;email&#34;</span>: <span style="color:#e6db74">&#34;gavin.sharp@gmail.com&#34;</span>,
+      <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;gavin.sharp@gmail.com&#34;</span>,
+      <span style="color:#f92672">&#34;real_name&#34;</span>: <span style="color:#e6db74">&#34;:Gavin Sharp [email: gavin@gavinsharp.com]&#34;</span>
+    }
+  ],
+  <span style="color:#f92672">&#34;id&#34;</span>: <span style="color:#ae81ff">365569</span>,
+  <span style="color:#f92672">&#34;assigned_to_detail&#34;</span>: {
+    <span style="color:#f92672">&#34;id&#34;</span>: <span style="color:#ae81ff">135518</span>,
+    <span style="color:#f92672">&#34;email&#34;</span>: <span style="color:#e6db74">&#34;philringnalda@gmail.com&#34;</span>,
+    <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;philringnalda@gmail.com&#34;</span>,
+    <span style="color:#f92672">&#34;real_name&#34;</span>: <span style="color:#e6db74">&#34;Phil Ringnalda (:philor)&#34;</span>
+  },
+  <span style="color:#f92672">&#34;severity&#34;</span>: <span style="color:#e6db74">&#34;normal&#34;</span>,
+  <span style="color:#f92672">&#34;cf_last_resolved&#34;</span>: <span style="color:#e6db74">&#34;2007-01-03T06:03:58Z&#34;</span>,
+  <span style="color:#f92672">&#34;priority&#34;</span>: <span style="color:#e6db74">&#34;--&#34;</span>,
+  <span style="color:#f92672">&#34;platform&#34;</span>: <span style="color:#e6db74">&#34;PowerPC&#34;</span>,
+  <span style="color:#f92672">&#34;comment_count&#34;</span>: <span style="color:#ae81ff">3</span>,
+  <span style="color:#f92672">&#34;summary&#34;</span>: <span style="color:#e6db74">&#34;Remove workaround from bug 297227&#34;</span>,
+  <span style="color:#f92672">&#34;status&#34;</span>: <span style="color:#e6db74">&#34;RESOLVED&#34;</span>,
+  <span style="color:#f92672">&#34;product&#34;</span>: <span style="color:#e6db74">&#34;Core&#34;</span>,
+  <span style="color:#f92672">&#34;component&#34;</span>: <span style="color:#e6db74">&#34;Build Config&#34;</span>,
+  <span style="color:#f92672">&#34;target_milestone&#34;</span>: <span style="color:#e6db74">&#34;mozilla1.9alpha1&#34;</span>,
+  <span style="color:#f92672">&#34;is_confirmed&#34;</span>: <span style="color:#66d9ef">true</span>,
+  <span style="color:#f92672">&#34;url&#34;</span>: <span style="color:#e6db74">&#34;&#34;</span>,
+  <span style="color:#f92672">&#34;creator_detail&#34;</span>: {
+    <span style="color:#f92672">&#34;id&#34;</span>: <span style="color:#ae81ff">135518</span>,
+    <span style="color:#f92672">&#34;email&#34;</span>: <span style="color:#e6db74">&#34;philringnalda@gmail.com&#34;</span>,
+    <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;philringnalda@gmail.com&#34;</span>,
+    <span style="color:#f92672">&#34;real_name&#34;</span>: <span style="color:#e6db74">&#34;Phil Ringnalda (:philor)&#34;</span>
+  },
+  <span style="color:#f92672">&#34;op_sys&#34;</span>: <span style="color:#e6db74">&#34;Mac OS X&#34;</span>,
+  <span style="color:#f92672">&#34;dupe_of&#34;</span>: <span style="color:#66d9ef">null</span>,
+  <span style="color:#f92672">&#34;assigned_to&#34;</span>: <span style="color:#e6db74">&#34;philringnalda@gmail.com&#34;</span>,
+  <span style="color:#f92672">&#34;is_open&#34;</span>: <span style="color:#66d9ef">false</span>,
+  <span style="color:#f92672">&#34;resolution&#34;</span>: <span style="color:#e6db74">&#34;FIXED&#34;</span>,
+  <span style="color:#f92672">&#34;last_change_time&#34;</span>: <span style="color:#e6db74">&#34;2007-01-03T06:03:58Z&#34;</span>,
+  <span style="color:#960050;background-color:#1e0010">...</span>
+}
+</code></pre></div><p>We extracts summary information from the json file of each bug report.
+Since summary types, written by natural language, it may provide us some insights about the severity of the problem in the report.
+We are going to have such <code>summaryList.csv</code> file to use during the experiments.</p>
+<pre><code class="language-csv" data-lang="csv">
+'summary','severity','status','assigned_to'
+'ability for a jetpack to open a panel','normal','RESOLVED','myk@mykzilla.org'
+'JEP 116 - Private Browsing','enhancement','RESOLVED','paul@oshannessy.com'
+'implement reduced-privilege network request module','normal','RESOLVED','nobody@mozilla.org'
+'XHR - open() method','normal','RESOLVED','nobody@mozilla.org'
+'Implement byte streams','normal','RESOLVED','adw@mozilla.com'
+'Ensure correct onReady event behavior in all Jetpack content documents','major','RESOLVED','avarma@mozilla.com'
+``` --&gt;
+
+Let's define our data helpers. Bug summaries are composed of human-readable text. Nonetheless, still possible to detect meaningless texts. 
+
+Some of text documents contains abbreviations. In this study, we uses a simple text classification models to into 5 classes. We realized that 
+
+I basically doesn't search hours to grab a decent stopword list. Firstly, I used Scikit-Learn's stopwords but they're kind of lame to capture some of stopwords. Therefore, I used NTLK module to get rid of stopwords. 
+
+
+**Data Cleaning and Preprocessing**
+
+Alright, each sentence is set of words. Therefore, we're represent each summaries as a set of word vector. However, we need to get rid of some unnecessary noise in our data. Firstly, we tokenize all summarize to weed out punctiations and stopwords. The reason is that existence of punctiations causes our stemmers to differentiate *doesn't* keyword as *doesn* and *t*. Instead, we will cover it as a solid keyword and wordvecs will handle the rest by linking it with a negative semantic. 
+
+```python
+def tokenize_sentences(sentences: list) -&gt; list:
+    # takes list of summaries
+    # returns a list of list which is tokenized version of each sentences
+    tokenized_sentences = [[str(w) for w in nltk.tokenize.word_tokenize(sent)] for sent in sentences]
+    return tokenized_sentences
+</code></pre><p>After tokenezation, for each words in summaries, we will remove puncuations by iterating over a word list.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">remove_punctuation</span>(summary_arr):
+    arr <span style="color:#f92672">=</span> [<span style="color:#e6db74">&#34;&#34;</span><span style="color:#f92672">.</span>join([ch <span style="color:#66d9ef">for</span> ch <span style="color:#f92672">in</span> text <span style="color:#66d9ef">if</span> ch <span style="color:#f92672">not</span> <span style="color:#f92672">in</span> string<span style="color:#f92672">.</span>punctuation]) <span style="color:#66d9ef">for</span> text <span style="color:#f92672">in</span> summary_arr]
+    <span style="color:#66d9ef">return</span> arr
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">remove_multipunc</span>(summary_arr):
+    sarr <span style="color:#f92672">=</span> []
+    <span style="color:#66d9ef">for</span> sent <span style="color:#f92672">in</span> summary_arr:
+        tmp1 <span style="color:#f92672">=</span> sent<span style="color:#f92672">.</span>split()
+        tmp2 <span style="color:#f92672">=</span> []
+        <span style="color:#66d9ef">for</span> word <span style="color:#f92672">in</span> tmp1:
+            <span style="color:#66d9ef">if</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">&gt;=</span> sum((word<span style="color:#f92672">.</span>count(chr) <span style="color:#66d9ef">for</span> chr <span style="color:#f92672">in</span> string<span style="color:#f92672">.</span>punctuation)):
+                tmp2<span style="color:#f92672">.</span>append(word)
+        sarr<span style="color:#f92672">.</span>append(<span style="color:#e6db74">&#34; &#34;</span><span style="color:#f92672">.</span>join(tmp2))
+    <span style="color:#66d9ef">return</span> sarr
+
+</code></pre></div><p>We remove the stopwords here.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">remove_stopwords</span>(summary_arr, tokenized):
+    documents <span style="color:#f92672">=</span> []
+    <span style="color:#66d9ef">for</span> bug_id <span style="color:#f92672">in</span> range(len(summary_arr)):
+        docvec <span style="color:#f92672">=</span> []
+        <span style="color:#66d9ef">for</span> w <span style="color:#f92672">in</span> tokenized[bug_id]:
+            <span style="color:#66d9ef">if</span> w <span style="color:#f92672">not</span> <span style="color:#f92672">in</span> set(nltk<span style="color:#f92672">.</span>corpus<span style="color:#f92672">.</span>stopwords<span style="color:#f92672">.</span>words(<span style="color:#e6db74">&#34;english&#34;</span>)):
+                docvec<span style="color:#f92672">.</span>append(w)
+        documents<span style="color:#f92672">.</span>append(docvec)
+    <span style="color:#66d9ef">return</span> documents
+</code></pre></div><p>Here, we stemming word using Porter Stemmer reason is that words with same root generally carry same meaning.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">stem_words</span>(summary_arr, documents):
+    ps <span style="color:#f92672">=</span> nltk<span style="color:#f92672">.</span>stem<span style="color:#f92672">.</span>PorterStemmer()
+    stemmed_words <span style="color:#f92672">=</span> []
+    <span style="color:#66d9ef">for</span> bug_id <span style="color:#f92672">in</span> range(len(summary_arr)):
+        docvec <span style="color:#f92672">=</span> []
+        <span style="color:#66d9ef">for</span> w <span style="color:#f92672">in</span> documents[bug_id]:
+            <span style="color:#66d9ef">if</span> <span style="color:#f92672">not</span> any(char<span style="color:#f92672">.</span>isdigit() <span style="color:#66d9ef">for</span> char <span style="color:#f92672">in</span> w):
+                docvec<span style="color:#f92672">.</span>append(ps<span style="color:#f92672">.</span>stem(w))
+            <span style="color:#66d9ef">elif</span> w<span style="color:#f92672">.</span>startswith(<span style="color:#e6db74">&#34;0x&#34;</span>):
+                docvec<span style="color:#f92672">.</span>append(ps<span style="color:#f92672">.</span>stem(w))
+        stemmed_words<span style="color:#f92672">.</span>append(docvec)
+    <span style="color:#66d9ef">return</span> stemmed_words
+
+</code></pre></div><p>At the end, converting the lower because same keywords contains smae meaning
+whether whether contains a capital letter or not.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">convert_tolower</span>(summary_arr):
+    arr <span style="color:#f92672">=</span> []
+    <span style="color:#66d9ef">for</span> text <span style="color:#f92672">in</span> summary_arr:
+        tmp <span style="color:#f92672">=</span> []
+        <span style="color:#66d9ef">for</span> ch <span style="color:#f92672">in</span> text:
+            tmp<span style="color:#f92672">.</span>append(ch<span style="color:#f92672">.</span>lower())
+        arr<span style="color:#f92672">.</span>append(<span style="color:#e6db74">&#39;&#39;</span><span style="color:#f92672">.</span>join(tmp))
+    <span style="color:#66d9ef">return</span> arr
+</code></pre></div><p>Let&rsquo;s implement our classifier.</p>
+<p>Here, we&rsquo;ll use average values of word embeddigns. Each summary repressented as pre-defined sized array of word.
+We take average of those vector in order to capture the semantic.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">MeanEmbeddingVectorizer</span>(object):
+    <span style="color:#66d9ef">def</span> __init__(self, word2vec):
+        self<span style="color:#f92672">.</span>word2vec <span style="color:#f92672">=</span> word2vec
+        <span style="color:#75715e"># if a text is empty we should return a vector of zeros</span>
+        <span style="color:#75715e"># with the same dimensionality as all the other vectors</span>
+
+    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">fit</span>(self, X, y):
+        <span style="color:#66d9ef">return</span> self
+
+    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">transform</span>(self, X):
+        <span style="color:#e6db74">&#34;&#34;&#34;
+</span><span style="color:#e6db74">        This method sums all wordvecs of all words in a sentences
+</span><span style="color:#e6db74">        and divides the resulting vector by the len of word count in the sentence
+</span><span style="color:#e6db74">        &#34;&#34;&#34;</span>
+        <span style="color:#66d9ef">return</span> np<span style="color:#f92672">.</span>array([np<span style="color:#f92672">.</span>sum([self<span style="color:#f92672">.</span>word2vec[w] <span style="color:#66d9ef">for</span> w <span style="color:#f92672">in</span> words <span style="color:#66d9ef">if</span> w <span style="color:#f92672">in</span> self<span style="color:#f92672">.</span>word2vec] <span style="color:#f92672">or</span>
+                                [np<span style="color:#f92672">.</span>zeros(<span style="color:#ae81ff">100</span>)], axis<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>) <span style="color:#f92672">/</span> len(words) <span style="color:#66d9ef">for</span> words <span style="color:#f92672">in</span> X])
+</code></pre></div><p><strong>Evaluation</strong></p>
+<p>Let&rsquo;s train our model.</p>
+<p><strong>Future work</strong></p>
+<p>Here we can implement a duplicate elemination process.</p>
+
+      
+    </div>
+    
+  </div>
+</section>
+
+
+
+<section class="section">
+    <div class="container has-text-centered">
+      <p>&copy; <a href="https://github.com/ozsaygin">Oguz Ozsaygin</a> 2020</p>
+      
+    </div>
+  </section>
+  
+  
+  
+  </body>
+  
+  
+  </html>
+  
