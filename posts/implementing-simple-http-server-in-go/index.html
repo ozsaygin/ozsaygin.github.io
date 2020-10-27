@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"  lang="en-us">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+<title>Implementing Simple Http Web Server in Go | ozsaygin.github.io</title>
+
+
+
+<link href="ozsaygin.github.io/index.xml" rel="alternate" type="application/rss+xml" title="ozsaygin.github.io" />
+
+<link rel="stylesheet" href="/ozsaygin.github.io/css/style.css"/><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+<link rel="canonical" href="ozsaygin.github.io/posts/implementing-simple-http-server-in-go/">
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="theme-color" content="#ffffff">
+</head>
+<body>
+<section class="section">
+  <div class="container">
+    <nav id="nav-main" class="nav">
+      <div id="nav-name" class="nav-left">
+        <a id="nav-anchor" class="nav-item" href="ozsaygin.github.io">
+          <h1 id="nav-heading" class="title is-4">ozsaygin.github.io</h1>
+        </a>
+      </div>
+      <div class="nav-right">
+        <nav id="nav-items" class="nav-item level is-mobile"><a class="level-item" aria-label="github" href='https://github.com/ozsaygin'
+            target='_blank' rel='noopener'>
+            <span class="icon">
+              <i class><svg viewbox='0 0 24 24' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' aria-hidden='true'>
+    
+    <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+    
+  </svg></i>
+            </span>
+          </a></nav>
+      </div>
+    </nav>
+
+    <nav class="nav">
+      
+
+      
+    </nav>
+
+  </div>
+  <script src="/js/navicon-shift.js"></script>
+</section>
+<section class="section">
+  <div class="container">
+    <div class="subtitle tags is-6 is-pulled-right">
+      
+      
+<a class="subtitle is-6" href="/ozsaygin.github.io/tags/golang/">#golang</a>
+
+
+
+  
+  | <a class="subtitle is-6" href="/ozsaygin.github.io/tags/http/">#http</a>
+  
+
+
+      
+    </div>
+    <h2 class="subtitle is-6">September 29, 2020</h2>
+    <h1 class="title">Implementing Simple Http Web Server in Go</h1>
+    
+    <div class="content">
+      <p>I just have started to learning Go and was looking for a fun side-project
+can play around with the standard library. I saw this
+<a href="https://theprogrammershangout.com/resources/projects/http-project-guide/intro.md">post</a>
+in a discord server called <a href="https://theprogrammershangout.com">TPH</a>
+that explicitly defines the spesifications step-by-step to create a http
+server. I thought that creating a http server might give more insights about both
+how applications communicate with servers and contributes my learning journey in Go.
+So, I decided to follow this guideline.</p>
+<p>A http server is nothing but a server-side implementation of client-server architecture
+with socket API and quite similar to what we implemented in our network courses.
+In a server-client communication, server side process structure is composed of six stages. The server
+binds and starts listening the port. As new connections arrives server accepts those connections and
+handles them in separete threads. Each thread is basically a composition of data transfer operations
+between server and client using <code>Send()</code> and <code>Receive()</code> methods.</p>
+
+<div class="mermaid" style="text-align: center;">
+    
+graph LR
+Bind --> Listen
+Listen --> Accept
+Accept --> Listen
+Accept --> Recv
+Recv --> Send
+Send --> Close
+Send --> Recv
+
+</div>
+<p>Let&rsquo;s start with creating a baseline for our package.</p>
+<p>In our <strong>httpproto</strong> package each server instance is derived from <code>Server</code>
+struct encapsulating server address and port number.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-golang" data-lang="golang">
+<span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Server</span> <span style="color:#66d9ef">struct</span> {
+	<span style="color:#a6e22e">Address</span> <span style="color:#66d9ef">string</span>
+	<span style="color:#a6e22e">Port</span>    <span style="color:#66d9ef">int</span>
+}
+
+</code></pre></div><p>Once a server object is created, it starts to serve with <code>Serve()</code> function. Basically, what we
+design here is that implementing server part of a server-client application by using socket
+communication API. Server starts to listen given network address with <code>net.Listen()</code>. Then,
+we accept connection requests from HTTP clients with <code>Accept()</code> function. Each accepted connection
+should be handled seperately because we do not want that an client access http message of another
+client. Here, for each client we create a go routine with <code>go handleConnection(conn)</code> by passing
+client&rsquo;s conn to the handler.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-golang" data-lang="golang"><span style="color:#75715e">// Serve starts http serve which accept multiple connections
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">s</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Server</span>) <span style="color:#a6e22e">Serve</span>() {
+
+	<span style="color:#a6e22e">addr</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">Address</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;:&#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">strconv</span>.<span style="color:#a6e22e">Itoa</span>(<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">Port</span>)
+	<span style="color:#a6e22e">line</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">net</span>.<span style="color:#a6e22e">Listen</span>(<span style="color:#e6db74">&#34;tcp&#34;</span>, <span style="color:#a6e22e">addr</span>)
+
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+		<span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Fatalf</span>(<span style="color:#e6db74">&#34;Server could not listen %s...&#34;</span>, <span style="color:#a6e22e">addr</span>)
+	}
+
+	<span style="color:#75715e">// Start to accept incoming connections
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">for</span> {
+		<span style="color:#a6e22e">conn</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">line</span>.<span style="color:#a6e22e">Accept</span>()
+		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+			<span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Connection from %s could not connect to server...&#34;</span>, <span style="color:#a6e22e">addr</span>)
+		}
+		<span style="color:#75715e">// Handle the connection in a separate go routine
+</span><span style="color:#75715e"></span>		<span style="color:#66d9ef">go</span> <span style="color:#a6e22e">handleConnection</span>(<span style="color:#a6e22e">conn</span>)
+	}
+}
+</code></pre></div><p>Each go routine runs an instance of <code>handleConnection()</code> function inside with their own stack.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-golang" data-lang="golang"><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">handleConnection</span>(<span style="color:#a6e22e">conn</span> <span style="color:#a6e22e">net</span>.<span style="color:#a6e22e">Conn</span>) {
+
+    <span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">conn</span>.<span style="color:#a6e22e">Close</span>()
+
+	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">connected</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">true</span>; <span style="color:#a6e22e">connected</span>; {
+
+		<span style="color:#a6e22e">reader</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">bufio</span>.<span style="color:#a6e22e">NewReader</span>(<span style="color:#a6e22e">conn</span>)
+		<span style="color:#a6e22e">buff</span> <span style="color:#f92672">:=</span> make([]<span style="color:#66d9ef">byte</span>, <span style="color:#a6e22e">reader</span>.<span style="color:#a6e22e">Size</span>())
+
+		<span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">reader</span>.<span style="color:#a6e22e">Read</span>(<span style="color:#a6e22e">buff</span>)
+
+		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">==</span> <span style="color:#a6e22e">io</span>.<span style="color:#a6e22e">EOF</span> {
+			<span style="color:#66d9ef">continue</span>
+		}
+
+		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+			<span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Cannot read the buffer: %s&#34;</span>, <span style="color:#a6e22e">err</span>)
+		}
+
+		<span style="color:#a6e22e">data</span> <span style="color:#f92672">:=</span> string(<span style="color:#a6e22e">buff</span>)
+		<span style="color:#a6e22e">request</span> <span style="color:#f92672">:=</span> make(<span style="color:#66d9ef">map</span>[<span style="color:#66d9ef">string</span>]<span style="color:#66d9ef">string</span>)
+
+		<span style="color:#a6e22e">lines</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">strings</span>.<span style="color:#a6e22e">Split</span>(<span style="color:#a6e22e">data</span>, <span style="color:#e6db74">&#34;\n&#34;</span>)
+		<span style="color:#66d9ef">if</span> !(len(<span style="color:#a6e22e">lines</span>) &gt; <span style="color:#ae81ff">0</span>) {
+			<span style="color:#66d9ef">continue</span>
+		}
+
+		<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span>, <span style="color:#a6e22e">line</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">lines</span> {
+			<span style="color:#75715e">// request headers have &#34;\r\n&#34; chars at the end of line
+</span><span style="color:#75715e"></span>			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> {
+				<span style="color:#a6e22e">header</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">strings</span>.<span style="color:#a6e22e">Split</span>(<span style="color:#a6e22e">line</span>, <span style="color:#e6db74">&#34; &#34;</span>)
+				<span style="color:#a6e22e">request</span>[<span style="color:#e6db74">&#34;method&#34;</span>] = <span style="color:#a6e22e">header</span>[<span style="color:#ae81ff">0</span>]
+				<span style="color:#a6e22e">request</span>[<span style="color:#e6db74">&#34;resource&#34;</span>] = <span style="color:#a6e22e">header</span>[<span style="color:#ae81ff">1</span>]
+				<span style="color:#a6e22e">request</span>[<span style="color:#e6db74">&#34;version&#34;</span>] = <span style="color:#a6e22e">strings</span>.<span style="color:#a6e22e">ReplaceAll</span>(<span style="color:#a6e22e">header</span>[<span style="color:#ae81ff">2</span>], <span style="color:#e6db74">&#34;\r&#34;</span>, <span style="color:#e6db74">&#34;&#34;</span>)
+
+			}
+
+			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">strings</span>.<span style="color:#a6e22e">Contains</span>(<span style="color:#a6e22e">line</span>, <span style="color:#e6db74">&#34;:&#34;</span>) {
+				<span style="color:#a6e22e">line</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">strings</span>.<span style="color:#a6e22e">ReplaceAll</span>(<span style="color:#a6e22e">line</span>, <span style="color:#e6db74">&#34;\u0000&#34;</span>, <span style="color:#e6db74">&#34;&#34;</span>)
+				<span style="color:#a6e22e">pair</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">strings</span>.<span style="color:#a6e22e">Split</span>(<span style="color:#a6e22e">strings</span>.<span style="color:#a6e22e">TrimSpace</span>(<span style="color:#a6e22e">line</span>), <span style="color:#e6db74">&#34;:&#34;</span>)
+				<span style="color:#a6e22e">request</span>[<span style="color:#a6e22e">pair</span>[<span style="color:#ae81ff">0</span>]] = <span style="color:#a6e22e">pair</span>[<span style="color:#ae81ff">1</span>]
+			}
+		}
+
+		<span style="color:#75715e">//fmt.Printf(&#34;Data received by server: \n%s&#34;, mapPrettier(request))
+</span><span style="color:#75715e"></span>		<span style="color:#75715e">// Process the request
+</span><span style="color:#75715e"></span>		<span style="color:#a6e22e">currentDir</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">os</span>.<span style="color:#a6e22e">Getwd</span>()
+		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+			<span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;Something bad happened while getting cwd&#34;</span>)
+		}
+
+		<span style="color:#a6e22e">resourceDir</span> <span style="color:#f92672">:=</span> <span style="color:#e6db74">&#34;/www&#34;</span>
+		<span style="color:#a6e22e">resourcePath</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">strings</span>.<span style="color:#a6e22e">ReplaceAll</span>(<span style="color:#a6e22e">request</span>[<span style="color:#e6db74">&#34;resource&#34;</span>], <span style="color:#e6db74">&#34;../&#34;</span>, <span style="color:#e6db74">&#34;&#34;</span>)
+		<span style="color:#a6e22e">path</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">currentDir</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">resourceDir</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">resourcePath</span>
+
+		<span style="color:#66d9ef">switch</span> <span style="color:#a6e22e">request</span>[<span style="color:#e6db74">&#34;method&#34;</span>] {
+		<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">GetMethod</span>:
+			<span style="color:#a6e22e">handleGetRequest</span>(<span style="color:#a6e22e">path</span>, <span style="color:#a6e22e">conn</span>)
+
+		<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">PostMethod</span>:
+			<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;POST method call&#34;</span>)
+
+		<span style="color:#66d9ef">default</span>:
+			<span style="color:#a6e22e">message</span> <span style="color:#f92672">:=</span> <span style="color:#e6db74">&#34;HTTP/1.0 400 Bad Request\r\n\n&#34;</span>
+			<span style="color:#a6e22e">conn</span>.<span style="color:#a6e22e">Write</span>([]byte(<span style="color:#a6e22e">message</span>))
+			<span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;HTTP/1.0 400 Bad Request&#34;</span>)
+        }
+        <span style="color:#a6e22e">conn</span>.<span style="color:#a6e22e">Close</span>()
+        <span style="color:#a6e22e">connected</span> = <span style="color:#66d9ef">false</span>
+	}
+}
+</code></pre></div><h3 id="testing">Testing</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-golang" data-lang="golang">
+<span style="color:#f92672">package</span> <span style="color:#a6e22e">core</span>
+
+<span style="color:#f92672">import</span> (
+	<span style="color:#e6db74">&#34;bufio&#34;</span>
+	<span style="color:#e6db74">&#34;fmt&#34;</span>
+	<span style="color:#e6db74">&#34;log&#34;</span>
+	<span style="color:#e6db74">&#34;net&#34;</span>
+	<span style="color:#e6db74">&#34;strconv&#34;</span>
+	<span style="color:#e6db74">&#34;testing&#34;</span>
+)
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">Test_handleGetRequest</span>(<span style="color:#a6e22e">t</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">testing</span>.<span style="color:#a6e22e">T</span>) {
+	<span style="color:#66d9ef">type</span> <span style="color:#a6e22e">fields</span> <span style="color:#66d9ef">struct</span> {
+		<span style="color:#a6e22e">address</span> <span style="color:#66d9ef">string</span>
+		<span style="color:#a6e22e">port</span>    <span style="color:#66d9ef">int</span>
+	}
+
+	<span style="color:#a6e22e">tests</span> <span style="color:#f92672">:=</span> []<span style="color:#66d9ef">struct</span> {
+		<span style="color:#a6e22e">name</span>   <span style="color:#66d9ef">string</span>
+		<span style="color:#a6e22e">fields</span> <span style="color:#a6e22e">fields</span>
+	}{
+		{<span style="color:#e6db74">&#34;local&#34;</span>, <span style="color:#a6e22e">fields</span>{<span style="color:#e6db74">&#34;127.0.0.1&#34;</span>, <span style="color:#ae81ff">8080</span>}},
+	}
+
+	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">tt</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">tests</span> {
+		<span style="color:#a6e22e">t</span>.<span style="color:#a6e22e">Run</span>(<span style="color:#a6e22e">tt</span>.<span style="color:#a6e22e">name</span>, <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">t</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">testing</span>.<span style="color:#a6e22e">T</span>) {
+		})
+	}
+}
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">TestServer_Serve</span>(<span style="color:#a6e22e">t</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">testing</span>.<span style="color:#a6e22e">T</span>) {
+
+	<span style="color:#66d9ef">type</span> <span style="color:#a6e22e">fields</span> <span style="color:#66d9ef">struct</span> {
+		<span style="color:#a6e22e">address</span> <span style="color:#66d9ef">string</span>
+		<span style="color:#a6e22e">port</span>    <span style="color:#66d9ef">int</span>
+	}
+
+	<span style="color:#a6e22e">tests</span> <span style="color:#f92672">:=</span> []<span style="color:#66d9ef">struct</span> {
+		<span style="color:#a6e22e">name</span>        <span style="color:#66d9ef">string</span>
+		<span style="color:#a6e22e">clientCount</span> <span style="color:#66d9ef">int</span>
+		<span style="color:#a6e22e">fields</span>      <span style="color:#a6e22e">fields</span>
+	}{
+		{<span style="color:#e6db74">&#34;local&#34;</span>, <span style="color:#ae81ff">1</span>, <span style="color:#a6e22e">fields</span>{<span style="color:#e6db74">&#34;127.0.0.1&#34;</span>, <span style="color:#ae81ff">8080</span>}},
+	}
+
+	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">tt</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">tests</span> {
+		<span style="color:#a6e22e">t</span>.<span style="color:#a6e22e">Run</span>(<span style="color:#a6e22e">tt</span>.<span style="color:#a6e22e">name</span>, <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">t</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">testing</span>.<span style="color:#a6e22e">T</span>) {
+
+			<span style="color:#a6e22e">s</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">Server</span>{
+				<span style="color:#a6e22e">Address</span>: <span style="color:#a6e22e">tt</span>.<span style="color:#a6e22e">fields</span>.<span style="color:#a6e22e">address</span>,
+				<span style="color:#a6e22e">Port</span>:    <span style="color:#a6e22e">tt</span>.<span style="color:#a6e22e">fields</span>.<span style="color:#a6e22e">port</span>,
+			}
+			<span style="color:#75715e">// Start server
+</span><span style="color:#75715e"></span>			<span style="color:#66d9ef">go</span> <span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">Serve</span>()
+			<span style="color:#a6e22e">addr</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">Address</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;:&#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">strconv</span>.<span style="color:#a6e22e">Itoa</span>(<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">Port</span>)
+
+			<span style="color:#a6e22e">conn</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">net</span>.<span style="color:#a6e22e">Dial</span>(<span style="color:#e6db74">&#34;tcp&#34;</span>, <span style="color:#a6e22e">addr</span>)
+			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+				<span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;Cannot connect to server&#34;</span>)
+			}
+			<span style="color:#a6e22e">msg</span> <span style="color:#f92672">:=</span> <span style="color:#e6db74">`GET /a.txt HTTP/1.1\n
+</span><span style="color:#e6db74">User-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)\n
+</span><span style="color:#e6db74">Host: www.tutorialspoint.com\n
+</span><span style="color:#e6db74">Accept-Language: en-us\n
+</span><span style="color:#e6db74">Accept-Encoding: gzip, deflate\n
+</span><span style="color:#e6db74">Connection: Keep-Alive\n`</span>
+
+			<span style="color:#a6e22e">conn</span>.<span style="color:#a6e22e">Write</span>([]byte(<span style="color:#a6e22e">msg</span>))
+
+			<span style="color:#a6e22e">buf</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">bufio</span>.<span style="color:#a6e22e">NewReader</span>(<span style="color:#a6e22e">conn</span>).<span style="color:#a6e22e">ReadString</span>(<span style="color:#e6db74">&#39;\n&#39;</span>)
+			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+				<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;handle me&#34;</span>)
+			}
+			<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">buf</span>)
+
+			<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;Client Body:&#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">buf</span>)
+			<span style="color:#a6e22e">conn</span>.<span style="color:#a6e22e">Close</span>()
+			<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;client closed&#34;</span>)
+		})
+	}
+}
+
+<span style="color:#75715e">// TODO: Write test for each method call [GET, POST, PUT, ...]
+</span><span style="color:#75715e">// TODO: Write test for found, missing resources and corrupted header
+</span><span style="color:#75715e"></span>
+</code></pre></div><p>You can find the whole project in <a href="https://github.com/ozsaygin/httpproto">here</a>.</p>
+<!-- raw HTML omitted -->
+
+      
+    </div>
+    
+  </div>
+</section>
+
+
+
+<section class="section">
+    <div class="container has-text-centered">
+      <p>&copy; <a href="https://github.com/ozsaygin">Oguz Ozsaygin</a> 2020</p>
+      
+    </div>
+  </section>
+  
+  
+  
+  </body>
+  
+   <script async src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/8.8.0/mermaid.min.js"></script> 
+  </html>
+  

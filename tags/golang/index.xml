@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>ozsaygin.github.io</title>
-    <link>ozsaygin.github.io/</link>
-    <description>Recent content on ozsaygin.github.io</description>
+    <title>golang on ozsaygin.github.io</title>
+    <link>ozsaygin.github.io/tags/golang/</link>
+    <description>Recent content in golang on ozsaygin.github.io</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <copyright>&amp;copy; &lt;a href=&#34;https://github.com/ozsaygin&#34;&gt;Oguz Ozsaygin&lt;/a&gt; 2020</copyright>
-    <lastBuildDate>Tue, 29 Sep 2020 18:35:51 +0300</lastBuildDate><atom:link href="ozsaygin.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Tue, 29 Sep 2020 18:35:51 +0300</lastBuildDate><atom:link href="ozsaygin.github.io/tags/golang/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Implementing Simple Http Web Server in Go</title>
       <link>ozsaygin.github.io/posts/implementing-simple-http-server-in-go/</link>
