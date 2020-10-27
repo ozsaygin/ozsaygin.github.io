@@ -3,37 +3,15 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
-    <loc>ozsaygin.github.io/tags/golang/</loc>
-    <lastmod>2020-09-29T18:35:51+03:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>ozsaygin.github.io/tags/http/</loc>
-    <lastmod>2020-09-29T18:35:51+03:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>ozsaygin.github.io/posts/implementing-simple-http-server-in-go/</loc>
-    <lastmod>2020-09-29T18:35:51+03:00</lastmod>
+    <loc>ozsaygin.github.io/categories/</loc>
   </url>
   
   <url>
     <loc>ozsaygin.github.io/</loc>
-    <lastmod>2020-09-29T18:35:51+03:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>ozsaygin.github.io/posts/</loc>
-    <lastmod>2020-09-29T18:35:51+03:00</lastmod>
   </url>
   
   <url>
     <loc>ozsaygin.github.io/tags/</loc>
-    <lastmod>2020-09-29T18:35:51+03:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>ozsaygin.github.io/categories/</loc>
   </url>
   
 </urlset>
